@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Billing & Invoices')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Hospital Billing & Accounts</h2>
+                <p>Generate consultation bills, track medicine charges, record payments, and print receipts</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/billing/new}" class="btn btn-primary">
+                    <span>💳</span> Generate New Bill
+                </a>
+            </div>
+        </div>
+
+        <!-- Billing Summary KPIs -->
+        <div class="stats-grid" style="margin-bottom: 1.25rem;">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="stat-label">Total Invoices</div>
+                    <div class="stat-value" th:text="${totalCount}">0</div>
+                </div>
+                <div class="stat-icon-wrapper icon-blue">📄</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="stat-label">Pending Invoices</div>
+                    <div class="stat-value" style="color: var(--warning);" th:text="${pendingCount}">0</div>
+                </div>
+                <div class="stat-icon-wrapper icon-amber">⏳</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="stat-label">Revenue Collected</div>
+                    <div class="stat-value" style="color: var(--success);" th:text="'₹' + ${#numbers.formatDecimal(totalRevenue, 1, 2)}">₹0.00</div>
+                </div>
+                <div class="stat-icon-wrapper icon-green">💵</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="stat-label">Outstanding Dues</div>
+                    <div class="stat-value" style="color: var(--danger);" th:text="'₹' + ${#numbers.formatDecimal(pendingRevenue, 1, 2)}">₹0.00</div>
+                </div>
+                <div class="stat-icon-wrapper icon-amber">⚠️</div>
+            </div>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="filter-bar">
+            <form th:action="@{/billing}" method="get" class="search-box">
+                <input type="text" name="search" th:value="${search}" placeholder="Search by Invoice #, Patient Code, or Name..." />
+                <button type="submit">🔍 Search</button>
+            </form>
+
+            <div class="filter-pills">
+                <a th:href="@{/billing}" class="filter-pill" th:classappend="${currentStatus == null and (search == null or search.isEmpty()) ? 'active' : ''}">All Invoices</a>
+                <a th:href="@{/billing(status='PAID')}" class="filter-pill" th:classappend="${currentStatus != null and currentStatus.name() == 'PAID' ? 'active' : ''}">Paid</a>
+                <a th:href="@{/billing(status='PENDING')}" class="filter-pill" th:classappend="${currentStatus != null and currentStatus.name() == 'PENDING' ? 'active' : ''}">Pending</a>
+                <a th:href="@{/billing(status='PARTIALLY_PAID')}" class="filter-pill" th:classappend="${currentStatus != null and currentStatus.name() == 'PARTIALLY_PAID' ? 'active' : ''}">Partially Paid</a>
+            </div>
+        </div>
+
+        <!-- Bills List Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Invoices & Receipts (<span th:text="${#lists.size(bills)}">0</span>)</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div th:if="${#lists.isEmpty(bills)}" class="empty-state">
+                    <div class="empty-state-icon">💳</div>
+                    <h4>No Bills Found</h4>
+                    <p>No billing invoices matching the current filter.</p>
+                    <a th:href="@{/billing/new}" class="btn btn-primary">Generate First Bill</a>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(bills)}" class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date</th>
+                                <th>Patient</th>
+                                <th>Doctor</th>
+                                <th>Consult Fee</th>
+                                <th>Med Charges</th>
+                                <th>Total Bill</th>
+                                <th>Status</th>
+                                <th>Payment Method</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="b : ${bills}">
+                                <td>
+                                    <strong th:text="${b.billCode}">INV-1001</strong>
+                                </td>
+                                <td th:text="${#temporals.format(b.billDate, 'dd MMM yyyy')}">10 Oct 2026</td>
+                                <td>
+                                    <a th:href="@{/records/{id}(id=${b.patient.id})}" style="font-weight: 600;" th:text="${b.patient.fullName}">Patient</a>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:text="${b.patient.patientCode}">P-1001</div>
+                                </td>
+                                <td>
+                                    <span th:text="${b.doctor != null ? b.doctor.fullName : 'General Hospital'}">Doctor</span>
+                                </td>
+                                <td>
+                                    ₹<span th:text="${#numbers.formatDecimal(b.consultationFee, 1, 2)}">500.00</span>
+                                </td>
+                                <td>
+                                    ₹<span th:text="${#numbers.formatDecimal(b.medicineCharge, 1, 2)}">0.00</span>
+                                </td>
+                                <td>
+                                    <strong style="font-size: 0.95rem;">₹<span th:text="${#numbers.formatDecimal(b.totalAmount, 1, 2)}">500.00</span></strong>
+                                </td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${b.paymentStatus.name() == 'PAID' ? 'badge-paid' : (b.paymentStatus.name() == 'PENDING' ? 'badge-pending' : 'badge-partially-paid')}"
+                                          th:text="${b.paymentStatus.displayName}">Status</span>
+                                </td>
+                                <td>
+                                    <span style="font-size: 0.82rem;" th:text="${b.paymentMethod != null ? b.paymentMethod.displayName : 'CASH'}">Cash</span>
+                                </td>
+                                <td>
+                                    <div class="table-actions">
+                                        <a th:href="@{/billing/{id}(id=${b.id})}" class="btn btn-outline-primary btn-sm" title="View & Print Invoice Receipt">
+                                            🧾 Receipt
+                                        </a>
+                                        <form th:if="${b.paymentStatus.name() != 'PAID'}" th:action="@{/billing/{id}/pay(id=${b.id})}" method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Mark invoice as settled/paid">
+                                                ✓ Mark Paid
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/billing/{id}/delete(id=${b.id})}" method="post" onsubmit="return confirm('Delete this invoice?');" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete">🗑️</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Tax Invoice - ' + ${bill.billCode})}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <!-- Document Action Toolbar (Hidden on print) -->
+        <div class="doc-actions-bar no-print">
+            <a th:href="@{/billing}" class="btn btn-secondary btn-sm">
+                &larr; Back to Billing
+            </a>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <a th:href="@{/records/{id}(id=${bill.patient.id})}" class="btn btn-secondary btn-sm">
+                    <span>🗂️</span> Patient 360 Record
+                </a>
+
+                <!-- Quick Pay Form if not fully paid -->
+                <form th:if="${bill.paymentStatus.name() != 'PAID'}" th:action="@{/billing/{id}/pay(id=${bill.id})}" method="post" style="display: inline-flex; gap: 0.3rem;">
+                    <select name="paymentMethod" class="form-select" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;">
+                        <option th:each="m : ${paymentMethods}" th:value="${m}" th:text="${m.displayName}"></option>
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm">
+                        ✓ Mark as Paid
+                    </button>
+                </form>
+
+                <button onclick="window.print()" class="btn btn-primary btn-sm">
+                    <span>🖨️</span> Print Tax Invoice / Receipt
+                </button>
+            </div>
+        </div>
+
+        <!-- Printable Invoice Document -->
+        <div class="printable-document">
+
+            <!-- Hospital Header -->
+            <div class="doc-hospital-header">
+                <h2 th:text="${hospitalName}">LifeCare Multispeciality Hospital</h2>
+                <p th:text="${hospitalTagline}">Compassionate Care, Clinical Excellence</p>
+                <p style="font-size: 0.78rem;" th:text="${hospitalAddress} + ' | Phone: ' + ${hospitalPhone}">Address</p>
+                <div style="margin-top: 0.5rem;">
+                    <span style="font-weight: 700; font-size: 0.95rem; letter-spacing: 0.05em; color: var(--text-main); text-transform: uppercase;">
+                        PATIENT BILLING INVOICE & RECEIPT
+                    </span>
+                </div>
+            </div>
+
+            <!-- Invoice & Patient Info Grid -->
+            <div class="doc-meta-grid">
+                <div>
+                    <strong style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Billed To (Patient)</strong>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 0.2rem;" th:text="${bill.patient.fullName}">Rahul Varma</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        <strong>Patient ID: </strong><span th:text="${bill.patient.patientCode}">P-1001</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">
+                        <span th:text="${bill.patient.age} + ' Yrs'">34 Yrs</span> /
+                        <span th:text="${bill.patient.gender}">Male</span> &bull;
+                        <span th:text="${bill.patient.phone}">9876543210</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);" th:if="${bill.patient.address}" th:text="${bill.patient.address}">Address</div>
+                </div>
+
+                <div style="text-align: right;">
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);" th:text="${bill.billCode}">INV-1001</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                        <strong>Date: </strong><span th:text="${#temporals.format(bill.billDate, 'dd MMMM yyyy')}">10 Oct 2026</span>
+                    </div>
+                    <div style="margin-top: 0.4rem;">
+                        <strong>Payment Status: </strong>
+                        <span class="badge"
+                              th:classappend="${bill.paymentStatus.name() == 'PAID' ? 'badge-paid' : (bill.paymentStatus.name() == 'PENDING' ? 'badge-pending' : 'badge-partially-paid')}"
+                              th:text="${bill.paymentStatus.displayName}">PAID</span>
+                    </div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;" th:if="${bill.doctor}">
+                        <strong>Consultant: </strong><span th:text="${bill.doctor.fullName} + ' (' + ${bill.doctor.specialization} + ')'">Doctor</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);" th:if="${bill.paymentMethod}">
+                        <strong>Payment Mode: </strong><span th:text="${bill.paymentMethod.displayName}">Cash</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Itemized Breakdown Table -->
+            <table class="table" style="margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th>#</th>
+                        <th>Description / Service</th>
+                        <th>Department</th>
+                        <th style="text-align: right;">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Row 1: Fixed Consultation Fee -->
+                    <tr>
+                        <td>1</td>
+                        <td>
+                            <strong>Doctor Consultation Fee</strong>
+                            <div class="text-subtle" style="font-size: 0.78rem;" th:if="${bill.doctor}" th:text="'Consultation with ' + ${bill.doctor.fullName}">Doctor Consultation</div>
+                        </td>
+                        <td>OPD / Consultation</td>
+                        <td style="text-align: right; font-weight: 600;">
+                            ₹<span th:text="${#numbers.formatDecimal(bill.consultationFee, 1, 2)}">500.00</span>
+                        </td>
+                    </tr>
+
+                    <!-- Row 2: Medicine Charges -->
+                    <tr th:if="${bill.medicineCharge != null and bill.medicineCharge.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                        <td>2</td>
+                        <td>
+                            <strong>Pharmacy & Medicine Charges</strong>
+                            <div class="text-subtle" style="font-size: 0.78rem;" th:if="${bill.prescription}" th:text="'Prescription Ref: ' + ${bill.prescription.prescriptionCode}">Pharmacy</div>
+                        </td>
+                        <td>Hospital Pharmacy</td>
+                        <td style="text-align: right; font-weight: 600;">
+                            ₹<span th:text="${#numbers.formatDecimal(bill.medicineCharge, 1, 2)}">0.00</span>
+                        </td>
+                    </tr>
+
+                    <!-- Row 3: Lab / Diagnostic Charges -->
+                    <tr th:if="${bill.labCharges != null and bill.labCharges.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                        <td>3</td>
+                        <td>
+                            <strong>Laboratory & Diagnostics / Investigations</strong>
+                        </td>
+                        <td>Diagnostic Center</td>
+                        <td style="text-align: right; font-weight: 600;">
+                            ₹<span th:text="${#numbers.formatDecimal(bill.labCharges, 1, 2)}">0.00</span>
+                        </td>
+                    </tr>
+
+                    <!-- Concession/Discount if any -->
+                    <tr th:if="${bill.discount != null and bill.discount.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                        <td colspan="3" style="text-align: right; color: var(--success); font-weight: 600;">Less: Concession / Discount</td>
+                        <td style="text-align: right; color: var(--success); font-weight: 600;">
+                            - ₹<span th:text="${#numbers.formatDecimal(bill.discount, 1, 2)}">0.00</span>
+                        </td>
+                    </tr>
+
+                    <!-- Tax / GST if any -->
+                    <tr th:if="${bill.taxAmount != null and bill.taxAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                        <td colspan="3" style="text-align: right; font-weight: 600;">Applicable Taxes (GST)</td>
+                        <td style="text-align: right; font-weight: 600;">
+                            + ₹<span th:text="${#numbers.formatDecimal(bill.taxAmount, 1, 2)}">0.00</span>
+                        </td>
+                    </tr>
+
+                    <!-- Grand Total -->
+                    <tr style="background-color: #f8fafc; font-size: 1.05rem;">
+                        <td colspan="3" style="text-align: right; font-weight: 800; color: var(--text-main);">GRAND TOTAL:</td>
+                        <td style="text-align: right; font-weight: 800; color: var(--primary-dark);">
+                            ₹<span th:text="${#numbers.formatDecimal(bill.totalAmount, 1, 2)}">500.00</span>
+                        </td>
+                    </tr>
+
+                    <!-- Paid Amount -->
+                    <tr th:if="${bill.paidAmount != null and bill.paidAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                        <td colspan="3" style="text-align: right; font-weight: 600; color: var(--success);">Amount Paid:</td>
+                        <td style="text-align: right; font-weight: 700; color: var(--success);">
+                            ₹<span th:text="${#numbers.formatDecimal(bill.paidAmount, 1, 2)}">0.00</span>
+                        </td>
+                    </tr>
+
+                    <!-- Balance Due -->
+                    <tr th:if="${bill.paymentStatus.name() != 'PAID'}">
+                        <td colspan="3" style="text-align: right; font-weight: 700; color: var(--danger);">Balance Due:</td>
+                        <td style="text-align: right; font-weight: 800; color: var(--danger);">
+                            ₹<span th:text="${#numbers.formatDecimal(bill.balanceDue, 1, 2)}">0.00</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Notes if present -->
+            <div th:if="${bill.notes != null and !bill.notes.isEmpty()}" style="background: #f8fafc; padding: 0.65rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; font-size: 0.85rem;">
+                <strong>Notes: </strong><span th:text="${bill.notes}">Notes</span>
+            </div>
+
+            <!-- Signature & Declaration -->
+            <div class="doc-footer-signature">
+                <div style="font-size: 0.75rem; color: var(--text-subtle);">
+                    * Computer-generated official receipt. No physical signature required.<br>
+                    Thank you for choosing LifeCare Multispeciality Hospital.
+                </div>
+                <div class="signature-line">
+                    Authorized Accounts / Cashier<br>
+                    <strong>LifeCare Billing Desk</strong>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

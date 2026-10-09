@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Doctor Directory')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Doctor Directory</h2>
+                <p>Medical consultants, specialists, OPD room allocations, and schedules</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/doctors/new}" class="btn btn-primary">
+                    <span>➕</span> Add New Doctor
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="filter-bar">
+            <form th:action="@{/doctors}" method="get" class="search-box">
+                <input type="text" name="search" th:value="${search}" placeholder="Search by Doctor ID, Name, Specialization, Phone..." />
+                <button type="submit">🔍 Search</button>
+            </form>
+
+            <div class="filter-pills" th:if="${specializations != null and !#lists.isEmpty(specializations)}">
+                <a th:href="@{/doctors}" class="filter-pill" th:classappend="${currentSpecialization == null and (search == null or search.isEmpty()) ? 'active' : ''}">All Specialties</a>
+                <a th:each="spec : ${specializations}"
+                   th:href="@{/doctors(specialization=${spec})}"
+                   class="filter-pill"
+                   th:classappend="${currentSpecialization == spec ? 'active' : ''}"
+                   th:text="${spec}">Specialty</a>
+            </div>
+
+            <div th:if="${(search != null and !search.isEmpty()) or currentSpecialization != null}">
+                <a th:href="@{/doctors}" class="btn btn-secondary btn-sm">Clear Filter</a>
+            </div>
+        </div>
+
+        <!-- Doctors List Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Registered Doctors & Specialists (<span th:text="${#lists.size(doctors)}">0</span>)</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div th:if="${#lists.isEmpty(doctors)}" class="empty-state">
+                    <div class="empty-state-icon">🩺</div>
+                    <h4>No Doctors Found</h4>
+                    <p>No medical staff records found matching the criteria.</p>
+                    <a th:href="@{/doctors/new}" class="btn btn-primary">Add First Doctor</a>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(doctors)}" class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Doctor ID</th>
+                                <th>Doctor Name</th>
+                                <th>Specialization</th>
+                                <th>Qualifications</th>
+                                <th>Phone & Email</th>
+                                <th>Consultation Fee</th>
+                                <th>OPD Room / Timing</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="d : ${doctors}">
+                                <td>
+                                    <span class="badge badge-scheduled" th:text="${d.doctorCode}">D-101</span>
+                                </td>
+                                <td>
+                                    <strong th:text="${d.fullName}">Dr. Rajesh Sharma</strong>
+                                </td>
+                                <td>
+                                    <span class="badge" style="background-color: var(--teal-subtle); color: var(--teal);" th:text="${d.specialization}">Cardiology</span>
+                                </td>
+                                <td>
+                                    <span style="font-size: 0.82rem; color: var(--text-muted);" th:text="${d.qualification != null ? d.qualification : 'MBBS'}">MD, DM</span>
+                                </td>
+                                <td>
+                                    <span th:text="${d.phone}">+91 98450 11223</span>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:if="${d.email}" th:text="${d.email}"></div>
+                                </td>
+                                <td>
+                                    <strong>₹<span th:text="${#numbers.formatDecimal(d.consultationFee, 1, 2)}">500.00</span></strong>
+                                </td>
+                                <td>
+                                    <span style="font-size: 0.82rem;" th:text="${d.roomNumber != null ? d.roomNumber : 'OPD Desk'}">Room 102</span>
+                                    <div class="text-subtle" style="font-size: 0.75rem;" th:if="${d.availableDays}" th:text="${d.availableDays}"></div>
+                                </td>
+                                <td>
+                                    <div class="table-actions">
+                                        <a th:href="@{/appointments/new(doctorId=${d.id})}" class="btn btn-outline-primary btn-sm" title="Book appointment with this doctor">
+                                            📅 Book
+                                        </a>
+                                        <a th:href="@{/doctors/{id}/edit(id=${d.id})}" class="btn btn-secondary btn-sm" title="Edit doctor profile">
+                                            ✏️ Edit
+                                        </a>
+                                        <form th:action="@{/doctors/{id}/delete(id=${d.id})}" method="post" onsubmit="return confirm('Are you sure you want to remove this doctor?');" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete doctor">
+                                                🗑️
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Patient 360 Medical Records')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Patient 360 Medical Records</h2>
+                <p>Unified medical history: appointments, clinical prescriptions, and billing statements</p>
+            </div>
+        </div>
+
+        <!-- Quick Code Lookup Card -->
+        <div class="card" style="max-width: 650px; margin: 0 auto 2rem auto; border: 2px solid var(--primary-subtle);">
+            <div class="card-header">
+                <h3>Quick Patient Search by ID or Name</h3>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/records}" method="get" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Enter Patient ID (e.g. P-1001) or Name..." autofocus required />
+                    <button type="submit" class="btn btn-primary">
+                        <span>🔍 Search</span>
+                    </button>
+                    <a th:if="${search != null and !search.isEmpty()}" th:href="@{/records}" class="btn btn-secondary">
+                        Clear
+                    </a>
+                </form>
+            </div>
+        </div>
+
+        <!-- Patient Directory Cards -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Select a Patient to Open 360 History</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div th:if="${#lists.isEmpty(patients)}" class="empty-state">
+                    <div class="empty-state-icon">🗂️</div>
+                    <h4>No Patients Found</h4>
+                    <p>No patient record matches your search query.</p>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(patients)}" class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Patient ID</th>
+                                <th>Patient Name</th>
+                                <th>Age / Gender</th>
+                                <th>Phone</th>
+                                <th>Blood Group</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="p : ${patients}">
+                                <td>
+                                    <span class="badge badge-scheduled" th:text="${p.patientCode}">P-1001</span>
+                                </td>
+                                <td>
+                                    <strong th:text="${p.fullName}">Rahul Varma</strong>
+                                </td>
+                                <td>
+                                    <span th:text="${p.age} + ' yrs'">34 yrs</span> / <span th:text="${p.gender}">Male</span>
+                                </td>
+                                <td th:text="${p.phone}">9876543210</td>
+                                <td>
+                                    <span class="badge" style="background: #e2e8f0; color: #1e293b;" th:text="${p.bloodGroup != null ? p.bloodGroup : 'N/A'}">O+</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/records/{id}(id=${p.id})}" class="btn btn-primary btn-sm">
+                                        <span>🗂️</span> Open 360 History &rarr;
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

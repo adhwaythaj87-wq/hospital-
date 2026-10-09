@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Appointment Scheduling')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Appointment Scheduling</h2>
+                <p>Manage patient consultations, doctor bookings, and appointment statuses</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/appointments/new}" class="btn btn-primary">
+                    <span>📅</span> Book New Appointment
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="filter-bar">
+            <form th:action="@{/appointments}" method="get" class="search-box">
+                <input type="text" name="search" th:value="${search}" placeholder="Search by Code, Patient, Doctor, or Reason..." />
+                <button type="submit">🔍 Search</button>
+            </form>
+
+            <div class="filter-pills">
+                <a th:href="@{/appointments}" class="filter-pill" th:classappend="${currentStatus == null and (search == null or search.isEmpty()) ? 'active' : ''}">All Appointments</a>
+                <a th:href="@{/appointments(status='SCHEDULED')}" class="filter-pill" th:classappend="${currentStatus != null and currentStatus.name() == 'SCHEDULED' ? 'active' : ''}">Scheduled</a>
+                <a th:href="@{/appointments(status='COMPLETED')}" class="filter-pill" th:classappend="${currentStatus != null and currentStatus.name() == 'COMPLETED' ? 'active' : ''}">Completed</a>
+                <a th:href="@{/appointments(status='CANCELLED')}" class="filter-pill" th:classappend="${currentStatus != null and currentStatus.name() == 'CANCELLED' ? 'active' : ''}">Cancelled</a>
+            </div>
+        </div>
+
+        <!-- Appointments List Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Appointments List (<span th:text="${#lists.size(appointments)}">0</span>)</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div th:if="${#lists.isEmpty(appointments)}" class="empty-state">
+                    <div class="empty-state-icon">📅</div>
+                    <h4>No Appointments Found</h4>
+                    <p>There are no appointments matching the current selection.</p>
+                    <a th:href="@{/appointments/new}" class="btn btn-primary">Book New Appointment</a>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(appointments)}" class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Appt Code</th>
+                                <th>Patient</th>
+                                <th>Doctor & Specialty</th>
+                                <th>Date & Time</th>
+                                <th>Reason / Complaint</th>
+                                <th>Status</th>
+                                <th>Status Actions</th>
+                                <th>Next Steps</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="apt : ${appointments}">
+                                <td>
+                                    <strong th:text="${apt.appointmentCode}">APT-1001</strong>
+                                </td>
+                                <td>
+                                    <a th:href="@{/records/{id}(id=${apt.patient.id})}" style="font-weight: 600;" th:text="${apt.patient.fullName}">Rahul Varma</a>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:text="${apt.patient.patientCode} + ' &bull; ' + ${apt.patient.phone}">P-1001</div>
+                                </td>
+                                <td>
+                                    <strong th:text="${apt.doctor.fullName}">Dr. Rajesh Sharma</strong>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:text="${apt.doctor.specialization}">Cardiology</div>
+                                </td>
+                                <td>
+                                    <strong th:text="${#temporals.format(apt.appointmentDate, 'dd MMM yyyy')}">10 Oct 2026</strong>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:text="${#temporals.format(apt.appointmentTime, 'hh:mm a')}">10:00 AM</div>
+                                </td>
+                                <td>
+                                    <span style="font-size: 0.85rem;" th:text="${apt.chiefComplaint}">Routine cardiac checkup</span>
+                                    <div class="text-subtle" style="font-size: 0.75rem;" th:if="${apt.notes}" th:text="'Note: ' + ${apt.notes}"></div>
+                                </td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${apt.status.name() == 'SCHEDULED' ? 'badge-scheduled' : (apt.status.name() == 'COMPLETED' ? 'badge-completed' : 'badge-cancelled')}"
+                                          th:text="${apt.status.displayName}">Status</span>
+                                </td>
+                                <td>
+                                    <!-- Status Transition Buttons -->
+                                    <div style="display: flex; gap: 0.3rem;">
+                                        <form th:if="${apt.status.name() != 'COMPLETED'}" th:action="@{/appointments/{id}/status(id=${apt.id})}" method="post" style="display: inline;">
+                                            <input type="hidden" name="status" value="COMPLETED" />
+                                            <button type="submit" class="btn btn-success btn-sm" title="Mark consultation completed">✓ Done</button>
+                                        </form>
+                                        <form th:if="${apt.status.name() != 'CANCELLED'}" th:action="@{/appointments/{id}/status(id=${apt.id})}" method="post" style="display: inline;">
+                                            <input type="hidden" name="status" value="CANCELLED" />
+                                            <button type="submit" class="btn btn-secondary btn-sm" title="Cancel this appointment">✕ Cancel</button>
+                                        </form>
+                                        <form th:if="${apt.status.name() == 'CANCELLED'}" th:action="@{/appointments/{id}/status(id=${apt.id})}" method="post" style="display: inline;">
+                                            <input type="hidden" name="status" value="SCHEDULED" />
+                                            <button type="submit" class="btn btn-secondary btn-sm" title="Re-open appointment">Reopen</button>
+                                        </form>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-actions">
+                                        <a th:href="@{/prescriptions/new(appointmentId=${apt.id})}" class="btn btn-outline-primary btn-sm" title="Write prescription for this appointment">
+                                            💊 Rx
+                                        </a>
+                                        <a th:href="@{/billing/new(appointmentId=${apt.id})}" class="btn btn-secondary btn-sm" title="Generate bill for this appointment">
+                                            💳 Bill
+                                        </a>
+                                        <form th:action="@{/appointments/{id}/delete(id=${apt.id})}" method="post" onsubmit="return confirm('Delete this appointment record?');" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete">🗑️</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

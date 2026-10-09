@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Patient Management')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Patient Directory</h2>
+                <p>Register, search, view, and manage hospital patient profiles</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/patients/new}" class="btn btn-primary">
+                    <span>➕</span> Register New Patient
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="filter-bar">
+            <form th:action="@{/patients}" method="get" class="search-box">
+                <input type="text" name="search" th:value="${search}" placeholder="Search by Patient ID, Name, or Phone..." />
+                <button type="submit">🔍 Search</button>
+            </form>
+            <div th:if="${search != null and !search.isEmpty()}">
+                <a th:href="@{/patients}" class="btn btn-secondary btn-sm">Clear Filter</a>
+            </div>
+        </div>
+
+        <!-- Patients List Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Registered Patients (<span th:text="${#lists.size(patients)}">0</span>)</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div th:if="${#lists.isEmpty(patients)}" class="empty-state">
+                    <div class="empty-state-icon">🧑‍🤝‍🧑</div>
+                    <h4>No Patients Found</h4>
+                    <p>No matching patient records were found in the hospital registry.</p>
+                    <a th:href="@{/patients/new}" class="btn btn-primary">Register First Patient</a>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(patients)}" class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Patient ID</th>
+                                <th>Full Name</th>
+                                <th>Age</th>
+                                <th>Gender</th>
+                                <th>Phone Number</th>
+                                <th>Blood Group</th>
+                                <th>Medical History</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="p : ${patients}">
+                                <td>
+                                    <span class="badge badge-scheduled" th:text="${p.patientCode}">P-1001</span>
+                                </td>
+                                <td>
+                                    <strong th:text="${p.fullName}">Name</strong>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:if="${p.email}" th:text="${p.email}"></div>
+                                </td>
+                                <td th:text="${p.age} + ' yrs'">30 yrs</td>
+                                <td th:text="${p.gender}">Male</td>
+                                <td th:text="${p.phone}">9876543210</td>
+                                <td>
+                                    <span class="badge" style="background: #e2e8f0; color: #1e293b;" th:text="${p.bloodGroup != null and !p.bloodGroup.isEmpty() ? p.bloodGroup : 'N/A'}">O+</span>
+                                </td>
+                                <td>
+                                    <span style="font-size: 0.82rem; color: var(--text-muted);"
+                                          th:text="${p.medicalHistory != null and !p.medicalHistory.isEmpty() ? (p.medicalHistory.length() > 35 ? p.medicalHistory.substring(0, 35) + '...' : p.medicalHistory) : 'None recorded'}">
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="table-actions">
+                                        <a th:href="@{/records/{id}(id=${p.id})}" class="btn btn-outline-primary btn-sm" title="View complete 360 history">
+                                            <span>🗂️</span> Record
+                                        </a>
+                                        <a th:href="@{/patients/{id}/edit(id=${p.id})}" class="btn btn-secondary btn-sm" title="Edit patient details">
+                                            ✏️ Edit
+                                        </a>
+                                        <form th:action="@{/patients/{id}/delete(id=${p.id})}" method="post" onsubmit="return confirm('Are you sure you want to remove this patient record?');" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete patient">
+                                                🗑️
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

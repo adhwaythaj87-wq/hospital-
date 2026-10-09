@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - LifeCare HMS'">LifeCare Hospital Management System</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+    <!-- Top Navigation Header -->
+    <header class="app-header no-print" th:fragment="header">
+        <div class="header-inner">
+            <div class="brand-container">
+                <a th:href="@{/}" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none;">
+                    <div class="brand-logo-icon">➕</div>
+                    <div class="brand-text">
+                        <h1>LifeCare Hospital</h1>
+                        <p>Hospital Management System</p>
+                    </div>
+                </a>
+            </div>
+
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false">
+                <span class="hamburger-icon">☰</span>
+                <span class="close-icon">&times;</span>
+            </button>
+
+            <nav id="mainNavigation" class="main-nav">
+                <ul class="nav-links">
+                    <li class="nav-item">
+                        <a th:href="@{/}" th:classappend="${activeNav == 'dashboard' ? 'active' : ''}">
+                            <span>📊</span> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/patients}" th:classappend="${activeNav == 'patients' ? 'active' : ''}">
+                            <span>🧑‍🤝‍🧑</span> Patients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/doctors}" th:classappend="${activeNav == 'doctors' ? 'active' : ''}">
+                            <span>🩺</span> Doctors
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/appointments}" th:classappend="${activeNav == 'appointments' ? 'active' : ''}">
+                            <span>📅</span> Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/prescriptions}" th:classappend="${activeNav == 'prescriptions' ? 'active' : ''}">
+                            <span>💊</span> Prescriptions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/billing}" th:classappend="${activeNav == 'billing' ? 'active' : ''}">
+                            <span>💳</span> Billing
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/records}" th:classappend="${activeNav == 'records' ? 'active' : ''}">
+                            <span>🗂️</span> Records (360)
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="header-actions">
+                <span class="header-badge" th:text="${#temporals.format(#temporals.createNow(), 'EEE, dd MMM yyyy')}">Date</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Flash Notifications Container -->
+    <div class="alerts-container no-print" th:fragment="alerts">
+        <div th:if="${successMessage}" class="alert alert-success">
+            <div>
+                <strong>✓ Success: </strong>
+                <span th:text="${successMessage}">Operation successful!</span>
+            </div>
+            <button type="button" class="alert-close-btn" aria-label="Close">&times;</button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger">
+            <div>
+                <strong>✕ Error: </strong>
+                <span th:text="${errorMessage}">Something went wrong!</span>
+            </div>
+            <button type="button" class="alert-close-btn" aria-label="Close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Application Footer -->
+    <footer class="app-footer no-print" th:fragment="footer">
+        <div class="footer-inner">
+            <div>
+                <strong>LifeCare Hospital Management System</strong> &copy; <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy')}">2026</span> &bull; Java Spring Boot &bull; Embedded H2 Persistence
+            </div>
+            <div>
+                <span>Emergency: +91 (0484) 285-4000</span>
+            </div>
+        </div>
+        <script th:src="@{/js/main.js}"></script>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Medical Record - ' + ${patient.fullName})}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Patient 360 Medical Record</h2>
+                <p>Unified digital health history: consultations, prescriptions, and accounts</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/records}" class="btn btn-secondary">
+                    &larr; Search Another Patient
+                </a>
+            </div>
+        </div>
+
+        <!-- Patient Demographics & Profile Card -->
+        <div class="profile-card" style="margin-bottom: 1.5rem;">
+            <div class="profile-title">
+                <div class="profile-avatar-row">
+                    <div class="profile-avatar" th:text="${patient.fullName.substring(0, 1)}">P</div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <h3 style="font-size: 1.35rem; font-weight: 700; color: var(--text-main);" th:text="${patient.fullName}">Rahul Varma</h3>
+                            <span class="badge badge-scheduled" th:text="${patient.patientCode}">P-1001</span>
+                            <span class="badge" style="background: #e2e8f0; color: #1e293b;" th:if="${patient.bloodGroup}" th:text="'Blood: ' + ${patient.bloodGroup}">O+</span>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                            Registered Patient &bull; Member since <span th:text="${#temporals.format(patient.createdAt, 'dd MMM yyyy')}">Date</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quick Action Buttons for this patient -->
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <a th:href="@{/appointments/new(patientId=${patient.id})}" class="btn btn-primary btn-sm">
+                        <span>📅</span> Book Appointment
+                    </a>
+                    <a th:href="@{/prescriptions/new(patientId=${patient.id})}" class="btn btn-secondary btn-sm">
+                        <span>💊</span> New Prescription
+                    </a>
+                    <a th:href="@{/billing/new(patientId=${patient.id})}" class="btn btn-secondary btn-sm">
+                        <span>💳</span> Generate Bill
+                    </a>
+                    <a th:href="@{/patients/{id}/edit(id=${patient.id})}" class="btn btn-secondary btn-sm">
+                        <span>✏️</span> Edit Profile
+                    </a>
+                </div>
+            </div>
+
+            <!-- Profile Details Grid -->
+            <div class="profile-details-grid">
+                <div>
+                    <div class="profile-item-label">Age / Gender</div>
+                    <div class="profile-item-val"><span th:text="${patient.age}">34</span> Years / <span th:text="${patient.gender}">Male</span></div>
+                </div>
+                <div>
+                    <div class="profile-item-label">Phone Number</div>
+                    <div class="profile-item-val" th:text="${patient.phone}">9876543210</div>
+                </div>
+                <div>
+                    <div class="profile-item-label">Email Address</div>
+                    <div class="profile-item-val" th:text="${patient.email != null and !patient.email.isEmpty() ? patient.email : 'None'}">patient@example.com</div>
+                </div>
+                <div>
+                    <div class="profile-item-label">Emergency Contact</div>
+                    <div class="profile-item-val" th:text="${patient.emergencyContact != null and !patient.emergencyContact.isEmpty() ? patient.emergencyContact : 'None provided'}">Pooja Varma (Wife)</div>
+                </div>
+                <div style="grid-column: 1 / -1;" th:if="${patient.address}">
+                    <div class="profile-item-label">Residential Address</div>
+                    <div class="profile-item-val" th:text="${patient.address}">Address</div>
+                </div>
+                <div style="grid-column: 1 / -1;" th:if="${patient.medicalHistory}">
+                    <div class="profile-item-label">Known Allergies / Pre-existing Medical History</div>
+                    <div class="profile-item-val" style="color: var(--primary-dark); font-weight: 600;" th:text="${patient.medicalHistory}">History</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Tabs for Appointments, Prescriptions, and Bills -->
+        <div class="tabs-nav">
+            <button type="button" class="tab-btn active" data-tab="tab-appointments">
+                <span>📅</span> Appointments (<span th:text="${#lists.size(appointments)}">0</span>)
+            </button>
+            <button type="button" class="tab-btn" data-tab="tab-prescriptions">
+                <span>💊</span> Prescriptions (<span th:text="${#lists.size(prescriptions)}">0</span>)
+            </button>
+            <button type="button" class="tab-btn" data-tab="tab-bills">
+                <span>💳</span> Billing & Invoices (<span th:text="${#lists.size(bills)}">0</span>)
+            </button>
+        </div>
+
+        <!-- Tab 1: Appointments -->
+        <div id="tab-appointments" class="tab-content active">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Consultation Appointments</h3>
+                    <a th:href="@{/appointments/new(patientId=${patient.id})}" class="btn btn-primary btn-sm">➕ Book New Slot</a>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div th:if="${#lists.isEmpty(appointments)}" class="empty-state">
+                        <p>No appointment records found for this patient.</p>
+                    </div>
+                    <div th:unless="${#lists.isEmpty(appointments)}" class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Doctor & Specialty</th>
+                                    <th>Date & Time</th>
+                                    <th>Chief Complaint</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="apt : ${appointments}">
+                                    <td>
+                                        <strong th:text="${apt.appointmentCode}">APT-1001</strong>
+                                    </td>
+                                    <td>
+                                        <strong th:text="${apt.doctor.fullName}">Dr. Rajesh Sharma</strong>
+                                        <div class="text-subtle" style="font-size: 0.78rem;" th:text="${apt.doctor.specialization}">Cardiology</div>
+                                    </td>
+                                    <td>
+                                        <span th:text="${#temporals.format(apt.appointmentDate, 'dd MMM yyyy')}">Date</span>,
+                                        <span class="text-subtle" th:text="${#temporals.format(apt.appointmentTime, 'hh:mm a')}">Time</span>
+                                    </td>
+                                    <td th:text="${apt.chiefComplaint}">Complaint</td>
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${apt.status.name() == 'SCHEDULED' ? 'badge-scheduled' : (apt.status.name() == 'COMPLETED' ? 'badge-completed' : 'badge-cancelled')}"
+                                              th:text="${apt.status.displayName}">Status</span>
+                                    </td>
+                                    <td>
+                                        <div class="table-actions">
+                                            <a th:href="@{/prescriptions/new(appointmentId=${apt.id})}" class="btn btn-outline-primary btn-sm" title="Issue prescription">💊 Rx</a>
+                                            <a th:href="@{/billing/new(appointmentId=${apt.id})}" class="btn btn-secondary btn-sm" title="Bill appointment">💳 Bill</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Prescriptions -->
+        <div id="tab-prescriptions" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Prescriptions & Medications (Rx)</h3>
+                    <a th:href="@{/prescriptions/new(patientId=${patient.id})}" class="btn btn-primary btn-sm">➕ Write New Prescription</a>
+                </div>
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(prescriptions)}" class="empty-state">
+                        <p>No prescriptions have been issued for this patient.</p>
+                    </div>
+                    <div th:unless="${#lists.isEmpty(prescriptions)}">
+                        <div th:each="rx : ${prescriptions}" style="background-color: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+                                <div>
+                                    <span class="badge badge-scheduled" style="font-size: 0.85rem;" th:text="${rx.prescriptionCode}">RX-1001</span>
+                                    <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem;" th:text="'Date: ' + ${#temporals.format(rx.prescriptionDate, 'dd MMMM yyyy')}">Date</span>
+                                    <div style="font-weight: 700; color: var(--text-main); margin-top: 0.3rem;">
+                                        Prescribed by <span th:text="${rx.doctor.fullName} + ' (' + ${rx.doctor.specialization} + ')'">Doctor</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <a th:href="@{/prescriptions/{id}(id=${rx.id})}" class="btn btn-outline-primary btn-sm">
+                                        🖨️ View & Print Prescription Slip
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 0.75rem;" th:if="${rx.diagnosis}">
+                                <strong>Diagnosis: </strong><span th:text="${rx.diagnosis}">Diagnosis</span>
+                            </div>
+
+                            <!-- Medicines Table -->
+                            <table class="table" style="background: white; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 0.75rem;">
+                                <thead>
+                                    <tr style="background: #f8fafc;">
+                                        <th>Medicine</th>
+                                        <th>Dosage</th>
+                                        <th>Frequency</th>
+                                        <th>Duration</th>
+                                        <th>Instructions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="med : ${rx.items}">
+                                        <td><strong th:text="${med.medicineName}">Medicine</strong></td>
+                                        <td th:text="${med.dosage}">1 Tab</td>
+                                        <td th:text="${med.frequency}">1-0-1</td>
+                                        <td th:text="${med.duration}">5 Days</td>
+                                        <td th:text="${med.instructions}">After food</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div th:if="${rx.advice}" style="font-size: 0.85rem; color: var(--text-muted);">
+                                <strong>Advice: </strong><span th:text="${rx.advice}">Advice</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Billing & Financials -->
+        <div id="tab-bills" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Billing Statements & Invoices</h3>
+                    <a th:href="@{/billing/new(patientId=${patient.id})}" class="btn btn-primary btn-sm">➕ Generate New Bill</a>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div th:if="${#lists.isEmpty(bills)}" class="empty-state">
+                        <p>No billing invoices recorded for this patient.</p>
+                    </div>
+                    <div th:unless="${#lists.isEmpty(bills)}" class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Consult Fee</th>
+                                    <th>Med Charge</th>
+                                    <th>Lab / Other</th>
+                                    <th>Total Bill</th>
+                                    <th>Paid Amount</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="b : ${bills}">
+                                    <td>
+                                        <strong th:text="${b.billCode}">INV-1001</strong>
+                                    </td>
+                                    <td th:text="${#temporals.format(b.billDate, 'dd MMM yyyy')}">Date</td>
+                                    <td>₹<span th:text="${#numbers.formatDecimal(b.consultationFee, 1, 2)}">500.00</span></td>
+                                    <td>₹<span th:text="${#numbers.formatDecimal(b.medicineCharge, 1, 2)}">0.00</span></td>
+                                    <td>₹<span th:text="${#numbers.formatDecimal(b.labCharges, 1, 2)}">0.00</span></td>
+                                    <td>
+                                        <strong style="font-size: 0.95rem;">₹<span th:text="${#numbers.formatDecimal(b.totalAmount, 1, 2)}">500.00</span></strong>
+                                    </td>
+                                    <td>₹<span th:text="${#numbers.formatDecimal(b.paidAmount, 1, 2)}">0.00</span></td>
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${b.paymentStatus.name() == 'PAID' ? 'badge-paid' : (b.paymentStatus.name() == 'PENDING' ? 'badge-pending' : 'badge-partially-paid')}"
+                                              th:text="${b.paymentStatus.displayName}">Status</span>
+                                    </td>
+                                    <td>
+                                        <a th:href="@{/billing/{id}(id=${b.id})}" class="btn btn-outline-primary btn-sm">
+                                            🧾 View Receipt
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

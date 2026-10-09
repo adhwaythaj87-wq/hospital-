@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Write Prescription (Rx)')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Write Medical Prescription (Rx)</h2>
+                <p>Prescribe medications, dosage schedules, duration, and patient care advice</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/prescriptions}" class="btn btn-secondary">
+                    &larr; Back to Prescriptions
+                </a>
+            </div>
+        </div>
+
+        <div class="card" style="max-width: 950px; margin: 0 auto;">
+            <div class="card-header">
+                <h3>Prescription Details</h3>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/prescriptions/save}" th:object="${form}" method="post">
+                    <input type="hidden" th:field="*{id}" />
+                    <input type="hidden" th:field="*{appointmentId}" />
+
+                    <!-- Top Row Details -->
+                    <div class="form-grid" style="margin-bottom: 1.5rem;">
+
+                        <!-- Rx Code -->
+                        <div class="form-group">
+                            <label class="form-label" for="prescriptionCode">Prescription Code</label>
+                            <input type="text" id="prescriptionCode" th:field="*{prescriptionCode}" class="form-control" readonly />
+                        </div>
+
+                        <!-- Date -->
+                        <div class="form-group">
+                            <label class="form-label" for="prescriptionDate">Prescription Date <span class="required">*</span></label>
+                            <input type="date" id="prescriptionDate" th:field="*{prescriptionDate}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('prescriptionDate') ? 'is-invalid' : ''}" required />
+                            <span class="field-error" th:if="${#fields.hasErrors('prescriptionDate')}" th:errors="*{prescriptionDate}"></span>
+                        </div>
+
+                        <!-- Select Patient -->
+                        <div class="form-group">
+                            <label class="form-label" for="patientId">Patient <span class="required">*</span></label>
+                            <select id="patientId" th:field="*{patientId}" class="form-select"
+                                    th:classappend="${#fields.hasErrors('patientId') ? 'is-invalid' : ''}" required>
+                                <option value="">-- Select Patient --</option>
+                                <option th:each="p : ${patients}"
+                                        th:value="${p.id}"
+                                        th:text="${p.patientCode} + ' - ' + ${p.fullName} + ' (' + ${p.age} + ' yrs / ' + ${p.gender} + ')'"
+                                        th:selected="${form.patientId == p.id}">
+                                </option>
+                            </select>
+                            <span class="field-error" th:if="${#fields.hasErrors('patientId')}" th:errors="*{patientId}"></span>
+                            <span class="form-hint" style="color: var(--danger);" th:if="${#fields.hasErrors('patientId')}">Note: Prescriptions are rejected if patient ID does not exist in registry.</span>
+                        </div>
+
+                        <!-- Select Doctor -->
+                        <div class="form-group">
+                            <label class="form-label" for="doctorId">Attending Doctor <span class="required">*</span></label>
+                            <select id="doctorId" th:field="*{doctorId}" class="form-select"
+                                    th:classappend="${#fields.hasErrors('doctorId') ? 'is-invalid' : ''}" required>
+                                <option value="">-- Select Doctor --</option>
+                                <option th:each="d : ${doctors}"
+                                        th:value="${d.id}"
+                                        th:text="${d.doctorCode} + ' - ' + ${d.fullName} + ' (' + ${d.specialization} + ')'"
+                                        th:selected="${form.doctorId == d.id}">
+                                </option>
+                            </select>
+                            <span class="field-error" th:if="${#fields.hasErrors('doctorId')}" th:errors="*{doctorId}"></span>
+                        </div>
+
+                        <!-- Diagnosis -->
+                        <div class="form-group full-width">
+                            <label class="form-label" for="diagnosis">Clinical Diagnosis / Symptoms</label>
+                            <input type="text" id="diagnosis" th:field="*{diagnosis}" class="form-control"
+                                   placeholder="e.g. Acute Bronchitis, Lumbar Spondylosis, Hypertension..." />
+                        </div>
+
+                    </div>
+
+                    <!-- Dynamic Medications Section -->
+                    <div style="background-color: var(--bg-subtle); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="font-size: 1rem; color: var(--text-main); font-weight: 700;">Medicines & Dosages (Rx)</h4>
+                            <button type="button" id="add-medicine-row-btn" class="btn btn-secondary btn-sm">
+                                ➕ Add Medicine
+                            </button>
+                        </div>
+
+                        <span class="field-error" th:if="${#fields.hasErrors('items')}" th:errors="*{items}" style="margin-bottom: 0.5rem;"></span>
+
+                        <div id="medicine-rows-container">
+                            <div th:each="item, itemStat : *{items}" class="med-row">
+                                <div>
+                                    <label class="form-label">Medicine Name *</label>
+                                    <input type="text" th:field="*{items[__${itemStat.index}__].medicineName}" class="form-control"
+                                           placeholder="e.g. Amoxicillin 500mg" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Dosage *</label>
+                                    <input type="text" th:field="*{items[__${itemStat.index}__].dosage}" class="form-control"
+                                           placeholder="e.g. 1 Tablet" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Frequency</label>
+                                    <input type="text" th:field="*{items[__${itemStat.index}__].frequency}" class="form-control"
+                                           placeholder="1-0-1 (Twice Daily)" />
+                                </div>
+                                <div>
+                                    <label class="form-label">Duration *</label>
+                                    <input type="text" th:field="*{items[__${itemStat.index}__].duration}" class="form-control"
+                                           placeholder="e.g. 5 Days" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Instructions</label>
+                                    <input type="text" th:field="*{items[__${itemStat.index}__].instructions}" class="form-control"
+                                           placeholder="After meals" />
+                                </div>
+                                <div style="align-self: flex-end; padding-bottom: 0.15rem;">
+                                    <button type="button" class="btn btn-danger btn-sm remove-med-row-btn" title="Remove Medicine">&times;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advice / Non-medical instructions -->
+                    <div class="form-group">
+                        <label class="form-label" for="advice">Dietary & General Advice / Follow-up Instructions</label>
+                        <textarea id="advice" th:field="*{advice}" class="form-control" rows="3"
+                                  placeholder="e.g. Drink plenty of warm water, avoid cold items, follow up after 5 days if fever persists..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <a th:href="@{/prescriptions}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <span>💊 Issue Prescription & View Rx Slip</span>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

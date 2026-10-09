@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Prescription Management')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Prescription Management (Rx)</h2>
+                <p>Digital medical prescriptions, dosage instructions, and patient medication regimens</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/prescriptions/new}" class="btn btn-primary">
+                    <span>💊</span> Write New Prescription
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="filter-bar">
+            <form th:action="@{/prescriptions}" method="get" class="search-box">
+                <input type="text" name="search" th:value="${search}" placeholder="Search by Rx Code, Patient, Doctor, Diagnosis..." />
+                <button type="submit">🔍 Search</button>
+            </form>
+            <div th:if="${search != null and !search.isEmpty()}">
+                <a th:href="@{/prescriptions}" class="btn btn-secondary btn-sm">Clear Filter</a>
+            </div>
+        </div>
+
+        <!-- Prescriptions List Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Prescriptions Issued (<span th:text="${#lists.size(prescriptions)}">0</span>)</h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div th:if="${#lists.isEmpty(prescriptions)}" class="empty-state">
+                    <div class="empty-state-icon">💊</div>
+                    <h4>No Prescriptions Found</h4>
+                    <p>No medical prescriptions have been issued yet.</p>
+                    <a th:href="@{/prescriptions/new}" class="btn btn-primary">Write First Prescription</a>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(prescriptions)}" class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Rx Code</th>
+                                <th>Date</th>
+                                <th>Patient</th>
+                                <th>Attending Doctor</th>
+                                <th>Clinical Diagnosis</th>
+                                <th>Medicines Prescribed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="rx : ${prescriptions}">
+                                <td>
+                                    <strong th:text="${rx.prescriptionCode}">RX-1001</strong>
+                                </td>
+                                <td th:text="${#temporals.format(rx.prescriptionDate, 'dd MMM yyyy')}">10 Oct 2026</td>
+                                <td>
+                                    <a th:href="@{/records/{id}(id=${rx.patient.id})}" style="font-weight: 600;" th:text="${rx.patient.fullName}">Patient</a>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:text="${rx.patient.patientCode}">P-1001</div>
+                                </td>
+                                <td>
+                                    <strong th:text="${rx.doctor.fullName}">Dr. Priya Nair</strong>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:text="${rx.doctor.specialization}">Pediatrics</div>
+                                </td>
+                                <td>
+                                    <strong th:text="${rx.diagnosis != null ? rx.diagnosis : 'General Consultation'}">Diagnosis</strong>
+                                    <div class="text-subtle" style="font-size: 0.78rem;" th:if="${rx.advice}" th:text="'Advice: ' + ${rx.advice}"></div>
+                                </td>
+                                <td>
+                                    <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.82rem;">
+                                        <li th:each="it : ${rx.items}" th:text="${it.medicineName} + ' (' + ${it.dosage} + ' - ' + ${it.duration} + ')'"></li>
+                                    </ul>
+                                </td>
+                                <td>
+                                    <div class="table-actions">
+                                        <a th:href="@{/prescriptions/{id}(id=${rx.id})}" class="btn btn-outline-primary btn-sm" title="View & Print Rx Slip">
+                                            🖨️ View Rx
+                                        </a>
+                                        <a th:href="@{/billing/new(prescriptionId=${rx.id})}" class="btn btn-secondary btn-sm" title="Bill for medicines & consult">
+                                            💳 Bill
+                                        </a>
+                                        <form th:action="@{/prescriptions/{id}/delete(id=${rx.id})}" method="post" onsubmit="return confirm('Delete this prescription?');" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete">🗑️</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

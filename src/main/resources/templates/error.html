@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Hospital System - Notice')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="card" style="max-width: 650px; margin: 3rem auto; text-align: center; padding: 2rem;">
+            <div style="font-size: 3.5rem; margin-bottom: 1rem;">🏥</div>
+            <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;"
+                th:text="${status != null ? 'HTTP ' + status + ' Notice' : 'System Notice'}">Notice</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;"
+               th:text="${message != null ? message : 'The requested hospital record or page was not found or an unexpected condition occurred.'}">
+               The requested hospital record or page was not found or an unexpected condition occurred.
+            </p>
+            <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                <a th:href="@{/}" class="btn btn-primary">
+                    <span>📊</span> Return to Dashboard
+                </a>
+                <a th:href="@{/patients}" class="btn btn-secondary">
+                    <span>🧑‍🤝‍🧑</span> Patient Directory
+                </a>
+                <a th:href="@{/appointments}" class="btn btn-secondary">
+                    <span>📅</span> Appointments
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

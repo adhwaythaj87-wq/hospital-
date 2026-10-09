@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Prescription - ' + ${prescription.prescriptionCode})}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <!-- Document Action Toolbar (Hidden during print) -->
+        <div class="doc-actions-bar no-print">
+            <a th:href="@{/prescriptions}" class="btn btn-secondary btn-sm">
+                &larr; Back to Prescriptions
+            </a>
+            <div style="display: flex; gap: 0.5rem;">
+                <a th:href="@{/records/{id}(id=${prescription.patient.id})}" class="btn btn-secondary btn-sm">
+                    <span>🗂️</span> Patient 360 Record
+                </a>
+                <a th:href="@{/billing/new(prescriptionId=${prescription.id})}" class="btn btn-primary btn-sm">
+                    <span>💳</span> Generate Bill
+                </a>
+                <button onclick="window.print()" class="btn btn-success btn-sm">
+                    <span>🖨️</span> Print Prescription Slip
+                </button>
+            </div>
+        </div>
+
+        <!-- Printable Rx Document -->
+        <div class="printable-document">
+
+            <!-- Hospital Header -->
+            <div class="doc-hospital-header">
+                <h2 th:text="${hospitalName}">LifeCare Multispeciality Hospital</h2>
+                <p th:text="${hospitalTagline}">Compassionate Care, Clinical Excellence</p>
+                <p style="font-size: 0.78rem;" th:text="${hospitalAddress} + ' | Phone: ' + ${hospitalPhone}">Address</p>
+            </div>
+
+            <!-- Doctor & Patient Details Grid -->
+            <div class="doc-meta-grid">
+                <div>
+                    <strong style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Attending Consultant</strong>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 0.2rem;" th:text="${prescription.doctor.fullName}">Dr. Priya Nair</div>
+                    <div style="color: var(--teal); font-weight: 600;" th:text="${prescription.doctor.specialization}">Pediatrics</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);" th:text="${prescription.doctor.qualification}">MD, DCH</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);" th:text="'Room: ' + ${prescription.doctor.roomNumber}">Room 105</div>
+                </div>
+
+                <div style="text-align: right;">
+                    <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary);" th:text="${prescription.prescriptionCode}">RX-1001</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
+                        <strong>Date: </strong><span th:text="${#temporals.format(prescription.prescriptionDate, 'dd MMMM yyyy')}">10 Oct 2026</span>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.95rem; font-weight: 700;" th:text="${prescription.patient.fullName}">Patient Name</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">
+                        <span th:text="'ID: ' + ${prescription.patient.patientCode}">P-1001</span> &bull;
+                        <span th:text="${prescription.patient.age} + ' Y / ' + ${prescription.patient.gender}">30 Y / M</span> &bull;
+                        <span th:text="'Blood: ' + ${prescription.patient.bloodGroup != null ? prescription.patient.bloodGroup : 'N/A'}">O+</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagnosis Section -->
+            <div style="margin-bottom: 1.5rem;" th:if="${prescription.diagnosis != null and !prescription.diagnosis.isEmpty()}">
+                <span style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;">Clinical Diagnosis / Assessment: </span>
+                <span style="font-size: 0.95rem; color: var(--primary-dark); font-weight: 600;" th:text="${prescription.diagnosis}">Upper Respiratory Tract Infection</span>
+            </div>
+
+            <!-- Rx Symbol -->
+            <div class="rx-symbol">℞</div>
+
+            <!-- Medications Table -->
+            <table class="table" style="margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th>#</th>
+                        <th>Medicine & Strength</th>
+                        <th>Dosage</th>
+                        <th>Frequency</th>
+                        <th>Duration</th>
+                        <th>Special Instructions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item, stat : ${prescription.items}">
+                        <td th:text="${stat.count}">1</td>
+                        <td>
+                            <strong th:text="${item.medicineName}">Amoxicillin 500mg</strong>
+                        </td>
+                        <td th:text="${item.dosage}">1 Tablet</td>
+                        <td>
+                            <span class="badge badge-scheduled" th:text="${item.frequency}">1-0-1</span>
+                        </td>
+                        <td th:text="${item.duration}">5 Days</td>
+                        <td style="font-size: 0.82rem; color: var(--text-muted);" th:text="${item.instructions}">After meals</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- General / Diet Advice -->
+            <div th:if="${prescription.advice != null and !prescription.advice.isEmpty()}"
+                 style="background: #f8fafc; border-left: 3px solid var(--primary); padding: 0.85rem 1rem; margin-bottom: 2rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                <strong style="font-size: 0.85rem; color: var(--text-main);">Doctor's Advice & Patient Instructions:</strong>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem; white-space: pre-line;" th:text="${prescription.advice}">Advice</p>
+            </div>
+
+            <!-- Doctor Signature Block -->
+            <div class="doc-footer-signature">
+                <div style="font-size: 0.75rem; color: var(--text-subtle);">
+                    * Computer-generated clinical prescription valid for 15 days from issue date.<br>
+                    Keep medicines out of reach of children.
+                </div>
+                <div class="signature-line">
+                    <strong th:text="${prescription.doctor.fullName}">Dr. Priya Nair</strong><br>
+                    Authorized Medical Practitioner
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>

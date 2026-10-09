@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/main :: head('Generate Bill')}"></head>
+<body>
+
+    <header th:replace="~{layout/main :: header}"></header>
+
+    <main class="main-wrapper">
+        <div th:replace="~{layout/main :: alerts}"></div>
+
+        <div class="page-header">
+            <div class="page-title">
+                <h2>Generate Patient Bill / Invoice</h2>
+                <p>Calculate consultation fees, medicine charges, and record invoice payments</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/billing}" class="btn btn-secondary">
+                    &larr; Back to Billing
+                </a>
+            </div>
+        </div>
+
+        <div class="card" style="max-width: 900px; margin: 0 auto;">
+            <div class="card-header">
+                <h3>Invoice Calculation Form</h3>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/billing/save}" th:object="${form}" method="post">
+                    <input type="hidden" th:field="*{id}" />
+                    <input type="hidden" th:field="*{appointmentId}" />
+                    <input type="hidden" th:field="*{prescriptionId}" />
+
+                    <div class="form-grid">
+
+                        <!-- Invoice Code -->
+                        <div class="form-group">
+                            <label class="form-label" for="billCode">Invoice / Bill Number</label>
+                            <input type="text" id="billCode" th:field="*{billCode}" class="form-control" readonly />
+                        </div>
+
+                        <!-- Bill Date -->
+                        <div class="form-group">
+                            <label class="form-label" for="billDate">Invoice Date <span class="required">*</span></label>
+                            <input type="date" id="billDate" th:field="*{billDate}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('billDate') ? 'is-invalid' : ''}" required />
+                            <span class="field-error" th:if="${#fields.hasErrors('billDate')}" th:errors="*{billDate}"></span>
+                        </div>
+
+                        <!-- Select Patient -->
+                        <div class="form-group">
+                            <label class="form-label" for="patientId">Patient <span class="required">*</span></label>
+                            <select id="patientId" th:field="*{patientId}" class="form-select"
+                                    th:classappend="${#fields.hasErrors('patientId') ? 'is-invalid' : ''}" required>
+                                <option value="">-- Choose Patient --</option>
+                                <option th:each="p : ${patients}"
+                                        th:value="${p.id}"
+                                        th:text="${p.patientCode} + ' - ' + ${p.fullName} + ' (' + ${p.phone} + ')'"
+                                        th:selected="${form.patientId == p.id}">
+                                </option>
+                            </select>
+                            <span class="field-error" th:if="${#fields.hasErrors('patientId')}" th:errors="*{patientId}"></span>
+                        </div>
+
+                        <!-- Select Doctor -->
+                        <div class="form-group">
+                            <label class="form-label" for="billingDoctorSelect">Attending Doctor / Department</label>
+                            <select id="billingDoctorSelect" th:field="*{doctorId}" class="form-select">
+                                <option value="">-- General OPD / No Specific Doctor --</option>
+                                <option th:each="d : ${doctors}"
+                                        th:value="${d.id}"
+                                        th:attr="data-fee=${d.consultationFee}"
+                                        th:text="${d.doctorCode} + ' - ' + ${d.fullName} + ' [' + ${d.specialization} + '] (Fee: ₹' + ${d.consultationFee} + ')'"
+                                        th:selected="${form.doctorId == d.id}">
+                                </option>
+                            </select>
+                            <span class="form-hint">Selecting a doctor auto-populates their consultation fee.</span>
+                        </div>
+
+                        <!-- Fixed Consultation Fee -->
+                        <div class="form-group">
+                            <label class="form-label" for="consultationFee">Consultation Fee (₹) <span class="required">*</span></label>
+                            <input type="number" step="0.01" id="consultationFee" th:field="*{consultationFee}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('consultationFee') ? 'is-invalid' : ''}"
+                                   placeholder="500.00" min="0" required />
+                            <span class="field-error" th:if="${#fields.hasErrors('consultationFee')}" th:errors="*{consultationFee}"></span>
+                            <span class="form-hint">Standard doctor consultation fee</span>
+                        </div>
+
+                        <!-- Medicine Charges -->
+                        <div class="form-group">
+                            <label class="form-label" for="medicineCharge">Medicine / Pharmacy Charges (₹) <span class="required">*</span></label>
+                            <input type="number" step="0.01" id="medicineCharge" th:field="*{medicineCharge}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('medicineCharge') ? 'is-invalid' : ''}"
+                                   placeholder="0.00" min="0" required />
+                            <span class="field-error" th:if="${#fields.hasErrors('medicineCharge')}" th:errors="*{medicineCharge}"></span>
+                            <span class="form-hint">Pharmacy items cost</span>
+                        </div>
+
+                        <!-- Lab / Diagnostic Charges -->
+                        <div class="form-group">
+                            <label class="form-label" for="labCharges">Lab & Diagnostic Charges (₹)</label>
+                            <input type="number" step="0.01" id="labCharges" th:field="*{labCharges}" class="form-control"
+                                   placeholder="0.00" min="0" />
+                        </div>
+
+                        <!-- Discount -->
+                        <div class="form-group">
+                            <label class="form-label" for="discount">Discount / Concession (₹)</label>
+                            <input type="number" step="0.01" id="discount" th:field="*{discount}" class="form-control"
+                                   placeholder="0.00" min="0" />
+                        </div>
+
+                        <!-- Tax / GST -->
+                        <div class="form-group">
+                            <label class="form-label" for="taxAmount">Tax / GST (₹)</label>
+                            <input type="number" step="0.01" id="taxAmount" th:field="*{taxAmount}" class="form-control"
+                                   placeholder="0.00" min="0" />
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="form-group">
+                            <label class="form-label" for="paymentMethod">Payment Mode</label>
+                            <select id="paymentMethod" th:field="*{paymentMethod}" class="form-select">
+                                <option th:each="m : ${paymentMethods}" th:value="${m}" th:text="${m.displayName}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Payment Status -->
+                        <div class="form-group">
+                            <label class="form-label" for="paymentStatus">Payment Status</label>
+                            <select id="paymentStatus" th:field="*{paymentStatus}" class="form-select">
+                                <option th:each="st : ${paymentStatuses}" th:value="${st}" th:text="${st.displayName}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Paid Amount -->
+                        <div class="form-group">
+                            <label class="form-label" for="paidAmount">Amount Paid (₹)</label>
+                            <input type="number" step="0.01" id="paidAmount" th:field="*{paidAmount}" class="form-control"
+                                   placeholder="0.00" min="0" />
+                            <span class="form-hint">Leave 0 if payment is pending</span>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="form-group full-width">
+                            <label class="form-label" for="notes">Billing Notes / Insurance Claim Ref</label>
+                            <textarea id="notes" th:field="*{notes}" class="form-control" rows="2"
+                                      placeholder="e.g. Paid via UPI GPay; claim reference #..."></textarea>
+                        </div>
+
+                    </div>
+
+                    <!-- Total Calculation Summary Banner -->
+                    <div style="background-color: var(--primary-subtle); border: 1px solid var(--border-focus); border-radius: var(--radius-md); padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                        <div>
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary-dark); text-transform: uppercase;">Calculated Total Amount:</span>
+                            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">Formula: Consultation Fee + Medicine Charge + Lab - Discount + Tax</p>
+                        </div>
+                        <div>
+                            <span id="totalAmountDisplay" style="font-size: 1.75rem; font-weight: 800; color: var(--primary-dark);">₹500.00</span>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a th:href="@{/billing}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <span>💳 Generate Invoice & Printable Receipt</span>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <footer th:replace="~{layout/main :: footer}"></footer>
+
+</body>
+</html>
